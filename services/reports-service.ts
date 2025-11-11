@@ -1,6 +1,7 @@
 "use client";
 
 import { nanoid } from "../lib/id";
+import { classifyIssue } from "../utils/ml-classifier";
 import type { Report } from "./types";
 export type { Report } from "./types";
 export type { Category, Status, ReportInput } from "./types";
@@ -88,18 +89,28 @@ export async function classifyReport(params: {
   const text = `${params.title ?? ""} ${
     params.description ?? ""
   }`.toLowerCase();
-  const keywordMatch = keywordClassifier(text);
-  if (keywordMatch) {
-    await delay(300);
-    return {
-      category: keywordMatch.category,
-      confidence: 0.92,
-      reason: keywordMatch.reason,
-    };
-  }
+  // const keywordMatch = keywordClassifier(text);
+  // if (keywordMatch) {
+  //   await delay(30);
+  //   return {
+  //     category: keywordMatch.category,
+  //     confidence: 0.92,
+  //     reason: keywordMatch.reason,
+  //   };
+  // }
 
+    // Use ML model
+  try {
+    const mlResult = await classifyIssue({image: params.file,title: params.title,description: params.description});
+    if (mlResult.confidence >= 0.6) {
+      return mlResult;
+    }
+  } catch (e) {
+    console.error("ML classification failed", e);
+  }
+  
   // Weak default
-  await delay(400);
+  await delay(5000);
   return {
     category: "other",
     confidence: 0.4,
@@ -139,35 +150,6 @@ function keywordClassifier(
   }
   return null;
 }
-
-// async function averageBrightness(file: File): Promise<number> {
-//   const url = URL.createObjectURL(file)
-//   try {
-//     const img = await loadImage(url)
-//     const { width, height } = img
-//     const canvas = document.createElement("canvas")
-//     canvas.width = 64
-//     canvas.height = 64
-//     const ctx = canvas.getContext("2d")
-//     if (!ctx) throw new Error("Canvas not supported")
-//     // Draw scaled thumbnail to speed up
-//     ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-//     const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data
-//     let sum = 0
-//     for (let i = 0; i < data.length; i += 4) {
-//       const r = data[i]
-//       const g = data[i + 1]
-//       const b = data[i + 2]
-//       // perceived luminance
-//       const y = 0.2126 * r + 0.7152 * g + 0.0722 * b
-//       sum += y
-//     }
-//     const avg = sum / (data.length / 4)
-//     return avg
-//   } finally {
-//     URL.revokeObjectURL(url)
-//   }
-// }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
