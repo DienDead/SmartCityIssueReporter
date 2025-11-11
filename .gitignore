@@ -1,0 +1,7 @@
+node_modules
+# Keep environment variables out of version control
+.env
+/ML_INTEGRATION.md
+/lib/generated/prisma
+/backend/.env
+/backend/node_modules
